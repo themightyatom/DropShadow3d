@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Videometry</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <link type="text/css" rel="stylesheet" href="main.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+</head>
+
+<body>
+    
+    <div id="info" >
+        <a href="https://videometry.net" target="_blank" rel="noopener">Videometry</a> 
+    </div>
+   
+    <script src="three/three.min.js"></script>
+    <script src="three/TDSLoader.js"></script>
+    <script src="three/OrbitControls.js"></script>
+    <script>
+
+        var container, controls, directionalLight;
+        var camera, scene, renderer;
+        init();
+        animate();
+        function init() {
+            container = document.createElement('div');
+            document.body.appendChild(container);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.z = 3;
+            camera.position.y = 2;
+            camera.position.x = -2;
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf9f9f9);
+
+            directionalLight = new THREE.DirectionalLight(0xFFFFFF, 0.8);
+            directionalLight.position = new THREE.Vector3(0, 10, 0);
+            scene.add(directionalLight);
+
+            directionalLight.position.copy(camera.position);
+
+            var ambient = new THREE.AmbientLight(0xFFFFFF, 0.3);
+            ambient.name = "ambient";
+            scene.add(ambient);
+
+            var loader = new THREE.TDSLoader();
+
+
+            loader.load('models/bedAO.3ds', function (object) {
+                object.rotation.x = -(Math.PI / 2);
+                //object.scale.set(0.01, 0.01, 0.01);
+                object.traverse(function (child) {
+                    if (child.isMesh) {
+                        switch (child.name) {
+                            case "_ao": // mapped object
+                                child.receiveShadow = false;
+                                child.castShadow = false;
+                                child.material = new THREE.MeshBasicMaterial({ map: child.material.map });
+                                child.material.shininess = 0;
+                                child.material.blending = THREE.MultiplyBlending;
+                                child.material.transparent = true;
+                                child.material.dithering = true;
+                                //child.visible = false;
+                                break;
+                            default:
+                                //child.material = new THREE.MeshPhongMaterial({ color: 0xFF0000, shininess: 2 });
+                                break;
+
+                        }
+
+                    }
+                });
+                scene.add(object);
+               
+            });
+            renderer = new THREE.WebGLRenderer({antialias:true});
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            container.appendChild(renderer.domElement);
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            window.addEventListener('resize', resize, false);
+
+            var floorTexture = new THREE.TextureLoader().load("models/lightWood.jpg");
+            floorTexture.wrapS = THREE.RepeatWrapping;
+            floorTexture.wrapT = THREE.RepeatWrapping;
+            floorTexture.repeat.set(5, 5);
+            var floor = new THREE.Mesh(new THREE.PlaneBufferGeometry(5, 5), new THREE.MeshBasicMaterial({ map: floorTexture }));
+            floor.rotation.x = -(Math.PI / 2);
+            floor.position.y = -0.01;// avoid z-fighting with shadow objects
+            scene.add(floor);
+        }
+        function resize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        function animate() {
+            controls.update();
+            renderer.render(scene, camera);
+            directionalLight.position.copy(camera.position);
+            requestAnimationFrame(animate);
+        }
+    </script>
+
+</body>
+
+</html>
